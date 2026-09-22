@@ -86,9 +86,14 @@ class ApiService {
         body: jsonEncode({'username': username, 'password': password}),
       ).timeout(const Duration(seconds: 15));
 
-      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      Map<String, dynamic>? body;
+      try {
+        body = jsonDecode(utf8.decode(response.bodyBytes));
+      } catch (_) {
+        body = null;
+      }
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && body != null) {
         _token = body['token'];
         _currentUser = User.fromJson(body['user']);
 
@@ -97,8 +102,16 @@ class ApiService {
         await prefs.setString(_keyUser, jsonEncode(_currentUser!.toJson()));
 
         return {'success': true, 'user': _currentUser};
+      } else if (response.statusCode == 500) {
+        return {
+          'success': false,
+          'error': 'Error 500 en el servidor. Falta aplicar las migraciones de base de datos en PythonAnywhere.'
+        };
       } else {
-        return {'success': false, 'error': body['error'] ?? 'Error de autenticación'};
+        return {
+          'success': false,
+          'error': body?['error'] ?? 'Error de autenticación (${response.statusCode})'
+        };
       }
     } catch (e) {
       return {'success': false, 'error': 'No se pudo conectar con el servidor ($baseUrl): $e'};

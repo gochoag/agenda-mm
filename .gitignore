@@ -19,11 +19,10 @@ backend/test_agenda.db
 
 # Variables de entorno secretas
 .env
+.env.*
 .env.local
 .env.*.local
-!agenda_app/.env
-!agenda_app/.env.example
-!backend/.env.example
+!**/.env.example
 
 # Dependencias Node / pnpm
 node_modules/
