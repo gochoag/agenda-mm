@@ -8,6 +8,8 @@
     "android:install": "powershell -Command \"$m = ((adb devices -l | Select-String 'transport_id:(\\d+)').Matches | Select-Object -First 1).Groups[1].Value; if ($m) { adb -t $m install --user 0 -r agenda_app/build/app/outputs/flutter-apk/app-debug.apk; adb -t $m shell am start -n com.alex.agendamm.agenda_app/.MainActivity } else { adb install --user 0 -r agenda_app/build/app/outputs/flutter-apk/app-debug.apk; adb shell am start -n com.alex.agendamm.agenda_app/.MainActivity }\"",
     "android:install-release": "powershell -Command \"$m = ((adb devices -l | Select-String 'transport_id:(\\d+)').Matches | Select-Object -First 1).Groups[1].Value; if ($m) { adb -t $m install --user 0 -r agenda_app/build/app/outputs/flutter-apk/app-release.apk; adb -t $m shell am start -n com.alex.agendamm.agenda_app/.MainActivity } else { adb install --user 0 -r agenda_app/build/app/outputs/flutter-apk/app-release.apk; adb shell am start -n com.alex.agendamm.agenda_app/.MainActivity }\"",
     "android:build": "cmd /c \"cd agenda_app && flutter build apk --release\"",
+    "android:copy-apk": "powershell -Command \"Copy-Item agenda_app/build/app/outputs/flutter-apk/app-release.apk backend/static/apk/agenda-latest.apk -Force\"",
+    "android:release-apk": "cmd /c \"cd agenda_app && flutter build apk --release\" && powershell -Command \"Copy-Item agenda_app/build/app/outputs/flutter-apk/app-release.apk backend/static/apk/agenda-latest.apk -Force\"",
     "android:clean-daemon": "cmd /c \"cd agenda_app/android && gradlew --stop\"",
     "android:generate-icons": "cmd /c \"cd agenda_app && dart run flutter_launcher_icons\"",
     "backend:dev": "uv run python backend/app.py",

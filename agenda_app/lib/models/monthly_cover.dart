@@ -89,6 +89,7 @@ class MonthlyCover {
   Color backgroundColor;
   List<CoverElement> elements;
   bool isCustom;
+  final bool exists;
 
   MonthlyCover({
     this.id,
@@ -101,7 +102,24 @@ class MonthlyCover {
     this.backgroundColor = const Color(0xFFFFFDF7),
     required this.elements,
     this.isCustom = false,
+    this.exists = true,
   });
+
+  factory MonthlyCover.empty(String monthYear) {
+    final parts = monthYear.split('-');
+    final year = parts.isNotEmpty ? parts[0] : DateTime.now().year.toString();
+    return MonthlyCover(
+      monthYear: monthYear,
+      title: '',
+      subtitle: '',
+      yearText: year,
+      backgroundType: 'grid',
+      backgroundColor: const Color(0xFFFFFDF7),
+      elements: [],
+      isCustom: true,
+      exists: false,
+    );
+  }
 
   factory MonthlyCover.fromJson(Map<String, dynamic> json) {
     List<CoverElement> elementsList = [];
@@ -119,17 +137,20 @@ class MonthlyCover {
       } catch (_) {}
     }
 
+    final bool existsVal = json['exists'] as bool? ?? (json['id'] != null);
+
     return MonthlyCover(
       id: json['id'] as int?,
       userId: json['user_id'] as int?,
       monthYear: json['month_year'] as String? ?? '2026-09',
-      title: json['title'] as String? ?? 'Septiembre',
-      subtitle: json['subtitle'] as String? ?? 'Amor y Abundancia',
+      title: json['title'] as String? ?? '',
+      subtitle: json['subtitle'] as String? ?? '',
       yearText: json['year_text'] as String? ?? '2026',
       backgroundType: json['background_type'] as String? ?? 'grid',
       backgroundColor: CoverElement._colorFromHex(json['background_color'] as String? ?? '#FFFDF7'),
       elements: elementsList,
       isCustom: json['is_custom'] as bool? ?? false,
+      exists: existsVal,
     );
   }
 

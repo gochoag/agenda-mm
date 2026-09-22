@@ -49,10 +49,26 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
 
   Future<void> _initFlow() async {
     await MonthStateService.instance.init();
-    final coverMonth = MonthStateService.instance.activeMonthYearString;
+    final currentReal = MonthStateService.instance.currentRealMonthYearString;
 
     try {
-      final cover = await ApiService.instance.getMonthlyCover(coverMonth);
+      final cover = await ApiService.instance.getMonthlyCover(currentReal);
+
+      // Si el usuario aún no tiene carátula (ni diseñada ni omitida):
+      if (!cover.exists) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _currentCover = null;
+          });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showNewMonthPrompt(currentReal);
+          });
+        }
+        return;
+      }
+
+      // Si ya tiene carátula para este mes (diseñada o generada tras omitir):
       if (mounted) {
         setState(() {
           _currentCover = cover;
@@ -70,13 +86,7 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
 
     // Esperar a que se aprecie la carátula de inicio
     await Future.delayed(const Duration(milliseconds: 2000));
-    if (!mounted) return;
-
-    // Verificar si es un mes nuevo sin carátula personalizada
-    final shouldPrompt = await MonthStateService.instance.shouldPromptNewMonthCover();
-    if (shouldPrompt && mounted) {
-      _showNewMonthPrompt();
-    } else if (mounted) {
+    if (mounted) {
       _enterMainApp();
     }
   }
@@ -94,7 +104,7 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
     );
   }
 
-  void _showNewMonthPrompt() {
+  void _showNewMonthPrompt(String monthYear) {
     final monthName = MonthStateService.instance.formattedActiveMonthName;
 
     showDialog(
@@ -109,8 +119,8 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF59D), // Amarillo post-it
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF59D), // Amarillo post-it
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -127,7 +137,7 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
               ),
               const SizedBox(height: 10),
               const Text(
-                'Comienza un nuevo mes en tu libreta. ¿Deseas diseñar la carátula personalizada en el Canva o prefieres usar la carátula predeterminada?',
+                'Comienza un nuevo mes en tu libreta. ¿Deseas diseñar tu carátula personalizada en el Canva o prefieres usar la carátula predeterminada?',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
               ),
@@ -145,8 +155,8 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
                     context,
                     MaterialPageRoute(
                       builder: (_) => CoverEditorScreen(
-                        monthYear: MonthStateService.instance.currentRealMonthYearString,
-                        initialCover: _currentCover,
+                        monthYear: monthYear,
+                        initialCover: MonthlyCover.empty(monthYear), // ¡LIENZO TOTALMENTE VACÍO!
                       ),
                     ),
                   );
@@ -159,8 +169,12 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    // Genera y guarda la carátula por defecto en el backend
+                    await ApiService.instance.applyDefaultCover(monthYear);
+                  } catch (_) {}
                   await MonthStateService.instance.markCurrentMonthHandled();
-                  if (ctx.mounted) Navigator.pop(ctx);
                   _enterMainApp();
                 },
                 child: const Text(
@@ -182,6 +196,42 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
         backgroundColor: Color(0xFFFFFDF7),
         body: Center(
           child: CircularProgressIndicator(color: AppColors.accent),
+        ),
+      );
+    }
+
+    if (_currentCover == null) {
+      // Pantalla limpia y elegante mientras se responde el diálogo de diseño
+      return Scaffold(
+        backgroundColor: const Color(0xFF1E293B),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF59D),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_stories_rounded,
+                  size: 50,
+                  color: Color(0xFF854D0E),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Agenda MM',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }

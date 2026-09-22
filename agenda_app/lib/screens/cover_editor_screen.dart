@@ -96,10 +96,16 @@ class _CoverEditorScreenState extends State<CoverEditorScreen> with SingleTicker
       final cover = await ApiService.instance.getMonthlyCover(widget.monthYear);
       if (mounted) {
         setState(() {
-          _cover = cover;
+          if (!cover.exists) {
+            _cover = MonthlyCover.empty(widget.monthYear);
+          } else {
+            _cover = cover;
+          }
           _isLoading = false;
           if (_cover.elements.isNotEmpty) {
             _selectedElement = _cover.elements.first;
+          } else {
+            _selectedElement = null;
           }
         });
       }

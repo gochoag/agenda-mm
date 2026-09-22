@@ -49,11 +49,7 @@ def get_default_cover_dict(user_id, month_year):
     month_name = SPANISH_MONTH_NAMES.get(month, f'Mes {month}')
     quote = DEFAULT_MONTH_QUOTES.get(month, 'Amor y Abundancia')
 
-    # Elementos por defecto estilo Bullet Journal artesanal (como en la foto):
-    # - Título del mes en lettering cursivo fucsia
-    # - Subtítulo / lema en amarillo cálido
-    # - Año en la base
-    # - Doodles: espirales moradas y destellos amarillos
+    # Plantilla por defecto con estilo artesanal (usada cuando el usuario presiona 'Omitir')
     default_elements = [
         {
             'id': 'title',
@@ -63,7 +59,7 @@ def get_default_cover_dict(user_id, month_year):
             'y': 0.38,
             'fontSize': 48.0,
             'fontFamily': 'Caveat',
-            'color': '#E11D48',  # Rosa vibrante marcador
+            'color': '#E11D48',
             'rotation': -0.05,
             'scale': 1.0
         },
@@ -75,7 +71,7 @@ def get_default_cover_dict(user_id, month_year):
             'y': 0.52,
             'fontSize': 26.0,
             'fontFamily': 'Caveat',
-            'color': '#EAB308',  # Amarillo sol cálido
+            'color': '#EAB308',
             'rotation': 0.02,
             'scale': 1.0
         },
@@ -96,7 +92,7 @@ def get_default_cover_dict(user_id, month_year):
             'type': 'doodle_spiral',
             'x': 0.22,
             'y': 0.28,
-            'color': '#9333EA',  # Espiral morada
+            'color': '#9333EA',
             'scale': 1.0,
             'rotation': 0.2
         },
@@ -105,7 +101,7 @@ def get_default_cover_dict(user_id, month_year):
             'type': 'doodle_spiral',
             'x': 0.78,
             'y': 0.32,
-            'color': '#9333EA',  # Espiral morada
+            'color': '#9333EA',
             'scale': 1.0,
             'rotation': -0.3
         },
@@ -114,7 +110,7 @@ def get_default_cover_dict(user_id, month_year):
             'type': 'doodle_sparkle',
             'x': 0.32,
             'y': 0.22,
-            'color': '#EAB308',  # Destello amarillo
+            'color': '#EAB308',
             'scale': 1.1,
             'rotation': 0.0
         },
@@ -123,7 +119,7 @@ def get_default_cover_dict(user_id, month_year):
             'type': 'doodle_sparkle',
             'x': 0.72,
             'y': 0.44,
-            'color': '#EAB308',  # Destello amarillo
+            'color': '#EAB308',
             'scale': 0.9,
             'rotation': 0.4
         }
@@ -136,8 +132,8 @@ def get_default_cover_dict(user_id, month_year):
         'title': month_name,
         'subtitle': quote,
         'year_text': str(year),
-        'background_type': 'grid',  # Hoja cuadriculada realista
-        'background_color': '#FFFDF7',  # Blanco marfil libreta
+        'background_type': 'grid',
+        'background_color': '#FFFDF7',
         'design_data': json.dumps(default_elements),
         'is_custom': False,
         'created_at': None,
@@ -164,11 +160,54 @@ def get_cover():
 
     cover = MonthlyCover.query.filter_by(user_id=target_user_id, month_year=month_year).first()
     if cover:
-        return jsonify(cover.to_dict()), 200
+        data = cover.to_dict()
+        data['exists'] = True
+        return jsonify(data), 200
 
-    # Si aún no existe una carátula guardada, devolver la plantilla default estructurada
+    # No tiene carátula creada ni omitida aún en la base de datos
     default_data = get_default_cover_dict(target_user_id, month_year)
+    default_data['exists'] = False
     return jsonify(default_data), 200
+
+
+@covers_bp.route('/default', methods=['POST'])
+@jwt_required()
+def create_default_cover():
+    """Guarda la plantilla por defecto en la base de datos cuando el usuario elige 'Omitir'."""
+    user_id = int(get_jwt_identity())
+    data = request.get_json(silent=True) or {}
+    now = datetime.now()
+    month_year = (data.get('month_year') or now.strftime('%Y-%m')).strip()
+
+    default_data = get_default_cover_dict(user_id, month_year)
+
+    cover = MonthlyCover.query.filter_by(user_id=user_id, month_year=month_year).first()
+    if not cover:
+        cover = MonthlyCover(
+            user_id=user_id,
+            month_year=month_year,
+            title=default_data['title'],
+            subtitle=default_data['subtitle'],
+            year_text=default_data['year_text'],
+            background_type=default_data['background_type'],
+            background_color=default_data['background_color'],
+            design_data=default_data['design_data'],
+            is_custom=False
+        )
+        db.session.add(cover)
+    else:
+        cover.title = default_data['title']
+        cover.subtitle = default_data['subtitle']
+        cover.year_text = default_data['year_text']
+        cover.background_type = default_data['background_type']
+        cover.background_color = default_data['background_color']
+        cover.design_data = default_data['design_data']
+        cover.is_custom = False
+
+    db.session.commit()
+    res = cover.to_dict()
+    res['exists'] = True
+    return jsonify(res), 200
 
 
 @covers_bp.route('', methods=['POST'])

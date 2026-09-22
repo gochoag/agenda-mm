@@ -309,6 +309,25 @@ class ApiService {
     }
   }
 
+  Future<MonthlyCover> applyDefaultCover(String monthYear) async {
+    final baseUrl = await getBaseUrl();
+    final url = Uri.parse('$baseUrl/api/covers/default');
+
+    final response = await http.post(
+      url,
+      headers: _headers(),
+      body: jsonEncode({'month_year': monthYear}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      return MonthlyCover.fromJson(body);
+    } else {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      throw Exception(body['error'] ?? 'Error al aplicar carátula por defecto');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getCoverHistoryMonths() async {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/covers/history');

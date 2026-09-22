@@ -1,8 +1,8 @@
 {
-  "version_code": 2,
-  "version_name": "1.0.1",
+  "version_code": 3,
+  "version_name": "1.0.2",
   "min_supported_version_code": 1,
   "force_update": false,
-  "release_notes": "✨ Carátulas mensuales estilo Bullet Journal con Canva editable artesanal, seccionado por mes para notas y tareas, y pantalla de inicio dinámica.",
+  "release_notes": "✨ Flujo de carátula mensual: inicia con diálogo para diseñar (lienzo vacío) u omitir (carátula por defecto), y mejoras táctiles en el Canva.",
   "apk_filename": "agenda-latest.apk"
 }
