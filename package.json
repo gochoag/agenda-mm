@@ -1,0 +1,30 @@
+{
+  "name": "agenda-mm",
+  "version": "1.0.0",
+  "description": "Sistema de Agenda, Notas Adhesivas y API Flask con Flutter APK",
+  "scripts": {
+    "android:dev": "powershell -Command \"$dev = (adb get-serialno).Trim(); if ($dev -and $dev -ne 'unknown') { Set-Location agenda_app; flutter run -d $dev } else { Set-Location agenda_app; flutter run }\"",
+    "android:release": "powershell -Command \"$dev = (adb get-serialno).Trim(); if ($dev -and $dev -ne 'unknown') { Set-Location agenda_app; flutter run --release -d $dev } else { Set-Location agenda_app; flutter run --release }\"",
+    "android:install": "powershell -Command \"$dev = (adb get-serialno).Trim(); adb -s $dev install --user 0 -r agenda_app/build/app/outputs/flutter-apk/app-debug.apk; adb -s $dev shell am start -n com.alex.agendamm.agenda_app/.MainActivity\"",
+    "android:install-release": "powershell -Command \"$dev = (adb get-serialno).Trim(); adb -s $dev install --user 0 -r agenda_app/build/app/outputs/flutter-apk/app-release.apk; adb -s $dev shell am start -n com.alex.agendamm.agenda_app/.MainActivity\"",
+    "android:build": "cmd /c \"cd agenda_app && flutter build apk --release\"",
+    "android:clean-daemon": "cmd /c \"cd agenda_app/android && gradlew --stop\"",
+    "android:generate-icons": "cmd /c \"cd agenda_app && dart run flutter_launcher_icons\"",
+    "backend:dev": "uv run python backend/app.py",
+    "backend:test": "uv run python backend/test_api.py",
+    "backend:create-admin": "uv run flask --app backend.app create-admin",
+    "backend:create-coadmin": "uv run flask --app backend.app create-coadmin",
+    "backend:list-users": "uv run flask --app backend.app list-users",
+    "backend:db:migrate": "uv run flask --app backend.app db migrate --directory backend/migrations",
+    "backend:db:upgrade": "uv run flask --app backend.app db upgrade --directory backend/migrations",
+    "adb:devices": "adb devices"
+  },
+  "keywords": [
+    "flutter",
+    "flask",
+    "pythonanywhere",
+    "android"
+  ],
+  "author": "",
+  "license": "ISC"
+}
