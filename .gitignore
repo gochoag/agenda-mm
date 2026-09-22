@@ -17,6 +17,9 @@ __pycache__/
 backend/agenda.db
 backend/test_agenda.db
 
+# Memoria y configuraciones locales del asistente (no se suben a Git)
+.agents/
+
 # Variables de entorno secretas
 .env
 .env.*

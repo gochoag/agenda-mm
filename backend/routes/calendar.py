@@ -23,6 +23,12 @@ def get_events():
         if target_user_id:
             query = query.filter_by(user_id=target_user_id)
 
+    # Filtrar por mes si se especifica (?month=YYYY-MM)
+    month = request.args.get('month', type=str)
+    if month:
+        month = month.strip()
+        query = query.filter(CalendarEvent.event_date.like(f"{month}%"))
+
     # Ordenar por fecha cronológica ascendente
     events = query.order_by(CalendarEvent.event_date.asc(), CalendarEvent.id.asc()).all()
     return jsonify({'events': [e.to_dict() for e in events]}), 200

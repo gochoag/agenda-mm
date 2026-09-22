@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/sticky_note.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/month_state_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_dialogs.dart';
+import '../widgets/month_selector_bar.dart';
 import '../widgets/user_filter_bar.dart';
 
 class NotesScreen extends StatefulWidget {
@@ -30,6 +32,11 @@ class _NotesScreenState extends State<NotesScreen> {
     if (currentUser?.isAdmin == true) {
       _loadUsers();
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _loadUsers() async {
@@ -295,6 +302,7 @@ class _NotesScreenState extends State<NotesScreen> {
                             color: selectedColorHex,
                             fontFamily: selectedFontFamily,
                             isPinned: isPinned,
+                            monthYear: MonthStateService.instance.activeMonthYearString,
                           );
                         } else {
                           await ApiService.instance.updateNote(
@@ -374,6 +382,7 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
       body: Column(
         children: [
+          const MonthSelectorBar(),
           if (currentUser?.isAdmin == true)
             UserFilterBar(
               title: 'Ver notas:',

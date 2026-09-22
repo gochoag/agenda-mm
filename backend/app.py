@@ -20,6 +20,8 @@ from backend.routes.auth import auth_bp
 from backend.routes.calendar import calendar_bp
 from backend.routes.notes import notes_bp
 from backend.routes.admin import admin_bp
+from backend.routes.app_update import app_update_bp
+from backend.routes.covers import covers_bp
 
 migrate = Migrate()
 
@@ -52,6 +54,8 @@ def create_app():
     app.register_blueprint(calendar_bp)
     app.register_blueprint(notes_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(app_update_bp)
+    app.register_blueprint(covers_bp)
 
     @app.route('/')
     def root():
@@ -62,7 +66,9 @@ def create_app():
                 'auth': '/api/auth/login',
                 'calendar': '/api/calendar',
                 'notes': '/api/notes',
-                'admin': '/api/admin'
+                'admin': '/api/admin',
+                'app_update': '/api/app/version',
+                'covers': '/api/covers'
             }
         })
 

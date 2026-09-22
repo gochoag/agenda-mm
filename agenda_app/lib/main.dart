@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
-import 'screens/main_shell.dart';
+import 'screens/cover_splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Bloquear orientación en vertical exclusivamente
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   // Cargar variables de entorno desde .env
   try {
@@ -41,7 +48,7 @@ class AgendaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: ApiService.instance.isAuthenticated
-          ? const MainShell()
+          ? const CoverSplashScreen()
           : const LoginScreen(),
     );
   }

@@ -3,7 +3,7 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_dialogs.dart';
-import 'main_shell.dart';
+import 'cover_splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (res['success'] == true) {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainShell()),
+          MaterialPageRoute(builder: (_) => const CoverSplashScreen()),
         );
       }
     } else {

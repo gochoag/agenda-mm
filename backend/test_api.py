@@ -213,6 +213,67 @@ class AgendaApiTestCase(unittest.TestCase):
         self.assertEqual(len(restored_events), 2)
         print("[OK] Restauración limpia validada al 100% (cero duplicados ni residuos)")
 
+        # 10. Carátulas Mensuales, Canva y Filtrado por Mes
+        # GET Carátula default
+        res = self.client.get('/api/covers?month=2026-09', headers=admin_headers)
+        self.assertEqual(res.status_code, 200)
+        cover_data = res.get_json()
+        self.assertEqual(cover_data['month_year'], '2026-09')
+        self.assertEqual(cover_data['background_type'], 'grid')
+        self.assertEqual(cover_data['is_custom'], False)
+        print("[OK] Consulta de carátula mensual default exitosa")
+
+        # POST Guardar Carátula personalizada (Canva)
+        save_payload = {
+            'month_year': '2026-09',
+            'title': 'Septiembre',
+            'subtitle': 'Amor y Abundancia',
+            'year_text': '2026',
+            'background_type': 'grid',
+            'background_color': '#FFFDF7',
+            'design_data': json.dumps([
+                {'type': 'text', 'text': 'Septiembre', 'color': '#E11D48'},
+                {'type': 'text', 'text': 'Amor y Abundancia', 'color': '#EAB308'},
+                {'type': 'doodle_spiral', 'color': '#9333EA'}
+            ]),
+            'is_custom': True
+        }
+        res = self.client.post('/api/covers', headers=admin_headers, json=save_payload)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.get_json()['is_custom'], True)
+        self.assertEqual(res.get_json()['subtitle'], 'Amor y Abundancia')
+        print("[OK] Guardado de carátula personalizada validado")
+
+        # Historial de meses disponibles
+        res = self.client.get('/api/covers/history', headers=admin_headers)
+        self.assertEqual(res.status_code, 200)
+        history_months = [m['month_year'] for m in res.get_json()['months']]
+        self.assertIn('2026-09', history_months)
+        print("[OK] Historial de meses con carátulas validado")
+
+        # Filtrado por mes en Notas y Calendario
+        res = self.client.post('/api/notes', headers=admin_headers, json={
+            'content': 'Nota específica de Septiembre',
+            'month_year': '2026-09'
+        })
+        self.assertEqual(res.status_code, 201)
+
+        res_sep = self.client.get('/api/notes?month=2026-09', headers=admin_headers)
+        self.assertEqual(res_sep.status_code, 200)
+        self.assertTrue(any(n['content'] == 'Nota específica de Septiembre' for n in res_sep.get_json()['notes']))
+
+        res_ago = self.client.get('/api/notes?month=2026-08', headers=admin_headers)
+        self.assertEqual(res_ago.status_code, 200)
+        self.assertFalse(any(n['content'] == 'Nota específica de Septiembre' for n in res_ago.get_json()['notes']))
+        print("[OK] Aislamiento y seccionado por mes en notas validado")
+
+        # Endpoint de versión para actualizaciones OTA
+        res = self.client.get('/api/app/version')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('version_code', res.get_json())
+        self.assertIn('download_url', res.get_json())
+        print("[OK] Endpoint de verificación de versión OTA validado")
+
         print("--- Todas las pruebas del Backend finalizaron con ÉXITO ---\n")
 
 

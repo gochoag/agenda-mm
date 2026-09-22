@@ -3,9 +3,11 @@ import 'package:intl/intl.dart';
 import '../models/calendar_event.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/month_state_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_dialogs.dart';
+import '../widgets/month_selector_bar.dart';
 import '../widgets/user_filter_bar.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -30,6 +32,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (currentUser?.isAdmin == true) {
       _loadUsers();
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _loadUsers() async {
@@ -59,7 +66,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _openEventEditor({CalendarEvent? event}) {
     final detailController = TextEditingController(text: event?.detail ?? '');
-    DateTime selectedDate = DateTime.now();
+    DateTime selectedDate = MonthStateService.instance.isViewingCurrentMonth
+        ? DateTime.now()
+        : DateTime(MonthStateService.instance.activeMonth.year, MonthStateService.instance.activeMonth.month, 1, 9, 0);
     TimeOfDay selectedTime = const TimeOfDay(hour: 9, minute: 0);
     bool shouldNotify = true;
 
@@ -332,6 +341,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       body: Column(
         children: [
+          const MonthSelectorBar(),
           if (currentUser?.isAdmin == true)
             UserFilterBar(
               title: 'Filtrar:',

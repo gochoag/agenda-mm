@@ -22,6 +22,20 @@ def get_notes():
         if target_user_id:
             query = query.filter_by(user_id=target_user_id)
 
+    # Filtrar por mes si se especifica (?month=YYYY-MM)
+    month = request.args.get('month', type=str)
+    if month:
+        month = month.strip()
+        query = query.filter(
+            db.or_(
+                StickyNote.month_year == month,
+                db.and_(
+                    StickyNote.month_year.is_(None),
+                    StickyNote.created_at.like(f"{month}%")
+                )
+            )
+        )
+
     # Ordenar: primero notas fijadas (is_pinned = True), luego por fecha de actualización desc
     notes = query.order_by(StickyNote.is_pinned.desc(), StickyNote.updated_at.desc(), StickyNote.id.desc()).all()
     return jsonify({'notes': [n.to_dict() for n in notes]}), 200
@@ -30,6 +44,7 @@ def get_notes():
 @notes_bp.route('', methods=['POST'])
 @jwt_required()
 def create_note():
+    from datetime import datetime
     user_id = int(get_jwt_identity())
     data = request.get_json(silent=True) or {}
 
@@ -37,6 +52,7 @@ def create_note():
     color = data.get('color', '#FFF59D')  # Color pastel por defecto
     font_family = data.get('font_family', 'handwriting')
     is_pinned = bool(data.get('is_pinned', False))
+    month_year = (data.get('month_year') or datetime.now().strftime('%Y-%m')).strip()
 
     if not content:
         return jsonify({'error': 'El contenido de la nota no puede estar vacío'}), 400
@@ -54,7 +70,8 @@ def create_note():
         content=content,
         color=color,
         font_family=font_family,
-        is_pinned=is_pinned
+        is_pinned=is_pinned,
+        month_year=month_year
     )
     db.session.add(note)
     db.session.commit()

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import '../services/update_service.dart';
+import '../services/month_state_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_dialogs.dart';
 import 'notes_screen.dart';
 import 'calendar_screen.dart';
 import 'admin_screen.dart';
 import 'login_screen.dart';
+import 'cover_editor_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -18,13 +21,25 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService.instance.requestPermissions();
+      UpdateService.instance.checkAndPromptUpdate(context);
+      _loadVersion();
     });
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await UpdateService.instance.getPackageInfo();
+    if (mounted) {
+      setState(() {
+        _appVersion = 'v${info.version}+${info.buildNumber}';
+      });
+    }
   }
 
   User? get user => ApiService.instance.currentUser;
@@ -154,6 +169,33 @@ class _MainShellState extends State<MainShell> {
               ),
             const Divider(),
             ListTile(
+              leading: const Icon(Icons.brush_rounded, color: Color(0xFFD97706)),
+              title: const Text('Carátula del Mes (Canva)'),
+              subtitle: const Text('Diseña tu portada estilo libreta', style: TextStyle(fontSize: 12)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CoverEditorScreen(
+                      monthYear: MonthStateService.instance.activeMonthYearString,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.system_update_alt_rounded, color: AppColors.accent),
+              title: const Text('Buscar Actualizaciones'),
+              subtitle: _appVersion.isNotEmpty
+                  ? Text('Versión instalada: $_appVersion', style: const TextStyle(fontSize: 12))
+                  : null,
+              onTap: () {
+                Navigator.pop(context);
+                UpdateService.instance.checkAndPromptUpdate(context, isManual: true);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
               onTap: () {
@@ -161,6 +203,18 @@ class _MainShellState extends State<MainShell> {
                 _logout();
               },
             ),
+            if (_appVersion.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Text(
+                  'Agenda MM • $_appVersion',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

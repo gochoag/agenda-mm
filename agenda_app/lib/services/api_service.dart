@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../models/calendar_event.dart';
 import '../models/sticky_note.dart';
+import '../models/app_version.dart';
+import '../models/monthly_cover.dart';
 
 class ApiService {
   static final ApiService instance = ApiService._internal();
@@ -128,9 +130,12 @@ class ApiService {
 
   // --- CALENDARIO ---
 
-  Future<List<CalendarEvent>> getCalendarEvents({int? userId}) async {
+  Future<List<CalendarEvent>> getCalendarEvents({int? userId, String? month}) async {
     final baseUrl = await getBaseUrl();
-    String query = userId != null ? '?user_id=$userId' : '';
+    final params = <String>[];
+    if (userId != null) params.add('user_id=$userId');
+    if (month != null && month.isNotEmpty) params.add('month=$month');
+    final query = params.isNotEmpty ? '?${params.join('&')}' : '';
     final url = Uri.parse('$baseUrl/api/calendar$query');
 
     final response = await http.get(url, headers: _headers());
@@ -215,9 +220,12 @@ class ApiService {
 
   // --- NOTAS ADHESIVAS ---
 
-  Future<List<StickyNote>> getNotes({int? userId}) async {
+  Future<List<StickyNote>> getNotes({int? userId, String? month}) async {
     final baseUrl = await getBaseUrl();
-    String query = userId != null ? '?user_id=$userId' : '';
+    final params = <String>[];
+    if (userId != null) params.add('user_id=$userId');
+    if (month != null && month.isNotEmpty) params.add('month=$month');
+    final query = params.isNotEmpty ? '?${params.join('&')}' : '';
     final url = Uri.parse('$baseUrl/api/notes$query');
 
     final response = await http.get(url, headers: _headers());
@@ -235,6 +243,7 @@ class ApiService {
     String color = '#FFF59D',
     String fontFamily = 'handwriting',
     bool isPinned = false,
+    String? monthYear,
     int? userId,
   }) async {
     final baseUrl = await getBaseUrl();
@@ -246,6 +255,7 @@ class ApiService {
       'font_family': fontFamily,
       'is_pinned': isPinned,
     };
+    if (monthYear != null && monthYear.isNotEmpty) payload['month_year'] = monthYear;
     if (userId != null) payload['user_id'] = userId;
 
     final response = await http.post(
@@ -260,6 +270,56 @@ class ApiService {
     } else {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(body['error'] ?? 'Error al crear nota');
+    }
+  }
+
+  // --- CARÁTULAS MENSUALES (BULLET JOURNAL) ---
+
+  Future<MonthlyCover> getMonthlyCover(String monthYear, {int? userId}) async {
+    final baseUrl = await getBaseUrl();
+    final params = <String>['month=$monthYear'];
+    if (userId != null) params.add('user_id=$userId');
+    final url = Uri.parse('$baseUrl/api/covers?${params.join('&')}');
+
+    final response = await http.get(url, headers: _headers());
+    if (response.statusCode == 200) {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      return MonthlyCover.fromJson(body);
+    } else {
+      throw Exception('Error al obtener carátula mensual (${response.statusCode})');
+    }
+  }
+
+  Future<MonthlyCover> saveMonthlyCover(MonthlyCover cover) async {
+    final baseUrl = await getBaseUrl();
+    final url = Uri.parse('$baseUrl/api/covers');
+
+    final response = await http.post(
+      url,
+      headers: _headers(),
+      body: jsonEncode(cover.toJson()),
+    );
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      return MonthlyCover.fromJson(body);
+    } else {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      throw Exception(body['error'] ?? 'Error al guardar carátula');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getCoverHistoryMonths() async {
+    final baseUrl = await getBaseUrl();
+    final url = Uri.parse('$baseUrl/api/covers/history');
+
+    final response = await http.get(url, headers: _headers());
+    if (response.statusCode == 200) {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      final list = body['months'] as List? ?? [];
+      return list.cast<Map<String, dynamic>>();
+    } else {
+      return [];
     }
   }
 
@@ -401,5 +461,23 @@ class ApiService {
     } else {
       throw Exception(body['error'] ?? 'Error en la restauración');
     }
+  }
+
+  Future<AppVersionInfo?> checkAppVersion() async {
+    try {
+      final baseUrl = await getBaseUrl();
+      final url = Uri.parse('$baseUrl/api/app/version');
+      final response = await http
+          .get(url, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(utf8.decode(response.bodyBytes));
+        return AppVersionInfo.fromJson(body);
+      }
+    } catch (_) {
+      // Si el backend no está disponible o no hay red, retorno silencioso
+    }
+    return null;
   }
 }
