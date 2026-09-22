@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import '../services/update_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_dialogs.dart';
 import 'cover_splash_screen.dart';
@@ -23,6 +24,8 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService.instance.requestPermissions();
+      // Verificar y ofrecer actualización antes de hacer login
+      UpdateService.instance.checkAndPromptUpdate(context);
     });
   }
 

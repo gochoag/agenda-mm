@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/monthly_cover.dart';
 import '../services/api_service.dart';
 import '../services/month_state_service.dart';
+import '../services/update_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_card_view.dart';
+import '../widgets/update_dialog.dart';
 import 'cover_editor_screen.dart';
 import 'main_shell.dart';
 
@@ -48,6 +50,24 @@ class _CoverSplashScreenState extends State<CoverSplashScreen> with SingleTicker
   }
 
   Future<void> _initFlow() async {
+    // 1. Verificar si hay actualización pendiente antes de proceder
+    try {
+      final updateInfo = await UpdateService.instance.checkForUpdate();
+      if (updateInfo != null && mounted) {
+        final pkg = await UpdateService.instance.getPackageInfo();
+        if (mounted) {
+          await showDialog(
+            context: context,
+            barrierDismissible: !updateInfo.forceUpdate,
+            builder: (dialogCtx) => UpdateDialog(
+              versionInfo: updateInfo,
+              currentVersion: pkg.version,
+            ),
+          );
+        }
+      }
+    } catch (_) {}
+
     await MonthStateService.instance.init();
     final currentReal = MonthStateService.instance.currentRealMonthYearString;
 
