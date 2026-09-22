@@ -4,7 +4,7 @@ import '../models/user.dart';
 import '../theme/app_theme.dart';
 
 class UserFilterBar extends StatelessWidget {
-  final String title;
+  final String? title;
   final List<User> users;
   final int? currentUserId;
   final int? selectedUserId;
@@ -14,7 +14,7 @@ class UserFilterBar extends StatelessWidget {
 
   const UserFilterBar({
     super.key,
-    required this.title,
+    this.title,
     required this.users,
     required this.currentUserId,
     required this.selectedUserId,
@@ -31,16 +31,18 @@ class UserFilterBar extends StatelessWidget {
       child: Row(
         children: [
           const Icon(Icons.filter_list, size: 20, color: AppColors.textSecondary),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: GoogleFonts.outfit(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          if (title != null && title!.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Text(
+              title!,
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
+          ],
+          const SizedBox(width: 8),
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,

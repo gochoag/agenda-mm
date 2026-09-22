@@ -385,7 +385,6 @@ class _NotesScreenState extends State<NotesScreen> {
           const MonthSelectorBar(),
           if (currentUser?.isAdmin == true)
             UserFilterBar(
-              title: 'Ver notas:',
               users: _usersList,
               currentUserId: currentUser?.id,
               selectedUserId: _filterUserId,

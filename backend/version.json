@@ -1,8 +1,8 @@
 {
-  "version_code": 3,
-  "version_name": "1.0.2",
+  "version_code": 4,
+  "version_name": "1.0.3",
   "min_supported_version_code": 1,
   "force_update": false,
-  "release_notes": "✨ Flujo de carátula mensual: inicia con diálogo para diseñar (lienzo vacío) u omitir (carátula por defecto), y mejoras táctiles en el Canva.",
+  "release_notes": "✨ Filtros simplificados (sin textos redundantes) y comprobación de actualización previa al login.",
   "apk_filename": "agenda-latest.apk"
 }

@@ -344,7 +344,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
           const MonthSelectorBar(),
           if (currentUser?.isAdmin == true)
             UserFilterBar(
-              title: 'Filtrar:',
               users: _usersList,
               currentUserId: currentUser?.id,
               selectedUserId: _filterUserId,
