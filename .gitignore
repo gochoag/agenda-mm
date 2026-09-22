@@ -45,6 +45,7 @@ agenda_app/.dart_tool/
 agenda_app/.flutter-plugins
 agenda_app/.flutter-plugins-dependencies
 *.apk
+!backend/static/apk/*.apk
 *.aab
 
 # Sistema Operativo y Editor
