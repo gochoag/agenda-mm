@@ -31,7 +31,8 @@ def get_notes():
                 StickyNote.month_year == month,
                 db.and_(
                     StickyNote.month_year.is_(None),
-                    StickyNote.created_at.like(f"{month}%")
+                    # CAST: Postgres no permite LIKE sobre timestamp (SQLite sí)
+                    db.cast(StickyNote.created_at, db.String).like(f"{month}%")
                 )
             )
         )

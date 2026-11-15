@@ -7,10 +7,13 @@ from flask_jwt_extended import (
     get_jwt
 )
 from backend.models import db, User
+from backend.limiter import limiter
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @auth_bp.route('/login', methods=['POST'])
+# Frena la fuerza bruta y el hash de contraseñas (scrypt: CPU y RAM) que compartimos con las otras apps
+@limiter.limit('5 per minute;30 per hour')
 def login():
     data = request.get_json(silent=True) or {}
     username = (data.get('username') or '').strip()

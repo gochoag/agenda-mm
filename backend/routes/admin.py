@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from functools import wraps
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from backend.models import db, User, CalendarEvent, StickyNote
 
@@ -35,8 +35,8 @@ def create_user():
     if not username or not password:
         return jsonify({'error': 'El nombre de usuario y la contraseña son requeridos'}), 400
 
-    if len(password) < 4:
-        return jsonify({'error': 'La contraseña debe tener al menos 4 caracteres'}), 400
+    if len(password) < 8:
+        return jsonify({'error': 'La contraseña debe tener al menos 8 caracteres'}), 400
 
     if role not in ['admin', 'coadmin']:
         role = 'coadmin'
@@ -78,8 +78,8 @@ def change_user_password(user_id):
     data = request.get_json(silent=True) or {}
     new_password = (data.get('new_password') or '').strip()
 
-    if not new_password or len(new_password) < 4:
-        return jsonify({'error': 'La nueva contraseña debe tener al menos 4 caracteres'}), 400
+    if not new_password or len(new_password) < 8:
+        return jsonify({'error': 'La nueva contraseña debe tener al menos 8 caracteres'}), 400
 
     user = db.session.get(User, user_id)
     if not user:
@@ -247,4 +247,5 @@ def restore_backup():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Error al restaurar la base de datos: {str(e)}'}), 500
+        current_app.logger.exception('Error al restaurar el respaldo')
+        return jsonify({'error': 'Error al restaurar la base de datos'}), 500
