@@ -7,10 +7,21 @@ import '../models/calendar_event.dart';
 import '../models/sticky_note.dart';
 import '../models/app_version.dart';
 import '../models/monthly_cover.dart';
+import 'session_client.dart';
 
 class ApiService {
   static final ApiService instance = ApiService._internal();
   ApiService._internal();
+
+  /// Lo asigna la app para volver al login cuando el servidor rechaza la sesión guardada.
+  void Function()? onSessionExpired;
+  late final http.Client _client = SessionClient(http.Client(), _expireSession);
+
+  Future<void> _expireSession() async {
+    if (_token == null) return; // varias peticiones pueden recibir 401 a la vez: solo la primera cierra
+    await logout();
+    onSessionExpired?.call();
+  }
 
   static const String _defaultUrl = 'http://10.0.2.2:5000'; // Default para emulador
   static const String _keyToken = 'auth_token';
@@ -82,7 +93,7 @@ class ApiService {
     final url = Uri.parse('$baseUrl/api/auth/login');
 
     try {
-      final response = await http.post(
+      final response = await _client.post(
         url,
         headers: _headers(needsAuth: false),
         body: jsonEncode({'username': username, 'password': password}),
@@ -138,7 +149,7 @@ class ApiService {
     final query = params.isNotEmpty ? '?${params.join('&')}' : '';
     final url = Uri.parse('$baseUrl/api/calendar$query');
 
-    final response = await http.get(url, headers: _headers());
+    final response = await _client.get(url, headers: _headers());
     if (response.statusCode == 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       final list = body['events'] as List? ?? [];
@@ -164,7 +175,7 @@ class ApiService {
     };
     if (userId != null) payload['user_id'] = userId;
 
-    final response = await http.post(
+    final response = await _client.post(
       url,
       headers: _headers(),
       body: jsonEncode(payload),
@@ -192,7 +203,7 @@ class ApiService {
     if (eventDate != null) payload['event_date'] = eventDate;
     if (status != null) payload['status'] = status;
 
-    final response = await http.put(
+    final response = await _client.put(
       url,
       headers: _headers(),
       body: jsonEncode(payload),
@@ -211,7 +222,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/calendar/$id');
 
-    final response = await http.delete(url, headers: _headers());
+    final response = await _client.delete(url, headers: _headers());
     if (response.statusCode != 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(body['error'] ?? 'Error al eliminar evento');
@@ -228,7 +239,7 @@ class ApiService {
     final query = params.isNotEmpty ? '?${params.join('&')}' : '';
     final url = Uri.parse('$baseUrl/api/notes$query');
 
-    final response = await http.get(url, headers: _headers());
+    final response = await _client.get(url, headers: _headers());
     if (response.statusCode == 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       final list = body['notes'] as List? ?? [];
@@ -258,7 +269,7 @@ class ApiService {
     if (monthYear != null && monthYear.isNotEmpty) payload['month_year'] = monthYear;
     if (userId != null) payload['user_id'] = userId;
 
-    final response = await http.post(
+    final response = await _client.post(
       url,
       headers: _headers(),
       body: jsonEncode(payload),
@@ -281,7 +292,7 @@ class ApiService {
     if (userId != null) params.add('user_id=$userId');
     final url = Uri.parse('$baseUrl/api/covers?${params.join('&')}');
 
-    final response = await http.get(url, headers: _headers());
+    final response = await _client.get(url, headers: _headers());
     if (response.statusCode == 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       return MonthlyCover.fromJson(body);
@@ -294,7 +305,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/covers');
 
-    final response = await http.post(
+    final response = await _client.post(
       url,
       headers: _headers(),
       body: jsonEncode(cover.toJson()),
@@ -313,7 +324,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/covers/default');
 
-    final response = await http.post(
+    final response = await _client.post(
       url,
       headers: _headers(),
       body: jsonEncode({'month_year': monthYear}),
@@ -332,7 +343,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/covers/history');
 
-    final response = await http.get(url, headers: _headers());
+    final response = await _client.get(url, headers: _headers());
     if (response.statusCode == 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       final list = body['months'] as List? ?? [];
@@ -357,7 +368,7 @@ class ApiService {
     if (fontFamily != null) payload['font_family'] = fontFamily;
     if (isPinned != null) payload['is_pinned'] = isPinned;
 
-    final response = await http.put(
+    final response = await _client.put(
       url,
       headers: _headers(),
       body: jsonEncode(payload),
@@ -376,7 +387,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/notes/$id');
 
-    final response = await http.delete(url, headers: _headers());
+    final response = await _client.delete(url, headers: _headers());
     if (response.statusCode != 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(body['error'] ?? 'Error al eliminar nota');
@@ -389,7 +400,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/admin/users');
 
-    final response = await http.get(url, headers: _headers());
+    final response = await _client.get(url, headers: _headers());
     if (response.statusCode == 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       final list = body['users'] as List? ?? [];
@@ -407,7 +418,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/admin/users');
 
-    final response = await http.post(
+    final response = await _client.post(
       url,
       headers: _headers(),
       body: jsonEncode({
@@ -429,7 +440,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/admin/users/$userId');
 
-    final response = await http.delete(url, headers: _headers());
+    final response = await _client.delete(url, headers: _headers());
     if (response.statusCode != 200) {
       final body = jsonDecode(utf8.decode(response.bodyBytes));
       throw Exception(body['error'] ?? 'Error al eliminar usuario');
@@ -440,7 +451,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/admin/users/$userId/password');
 
-    final response = await http.put(
+    final response = await _client.put(
       url,
       headers: _headers(),
       body: jsonEncode({'new_password': newPassword}),
@@ -456,7 +467,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/admin/backup');
 
-    final response = await http.get(url, headers: _headers());
+    final response = await _client.get(url, headers: _headers());
     if (response.statusCode == 200) {
       return utf8.decode(response.bodyBytes);
     } else {
@@ -468,7 +479,7 @@ class ApiService {
     final baseUrl = await getBaseUrl();
     final url = Uri.parse('$baseUrl/api/admin/restore');
 
-    final response = await http.post(
+    final response = await _client.post(
       url,
       headers: _headers(),
       body: jsonEncode(backupData),

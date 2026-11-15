@@ -8,6 +8,8 @@ import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/cover_splash_screen.dart';
 
+final _navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -31,6 +33,11 @@ void main() async {
 
   // Inicializar API Service (lee token de SharedPreferences)
   await ApiService.instance.init();
+  // Sesión rechazada por el servidor (caducada o de otro servidor): de vuelta al login
+  ApiService.instance.onSessionExpired = () => _navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
 
   runApp(const AgendaApp());
 
@@ -44,6 +51,7 @@ class AgendaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'Agenda MM',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
