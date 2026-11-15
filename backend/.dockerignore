@@ -1,0 +1,22 @@
+# Común (FIJO): nada de secretos, historial ni archivos locales dentro de la imagen
+.git
+.github
+.env
+.env.*
+*.log
+deploy/
+**/*.pem
+**/*.key
+*.dump
+*.sql
+
+# Python y archivos locales del proyecto
+.venv/
+**/__pycache__/
+.pytest_cache/
+*.db
+*.sqlite3
+test_api.py
+*.md
+Dockerfile
+.dockerignore

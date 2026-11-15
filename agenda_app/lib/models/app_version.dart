@@ -17,15 +17,25 @@ class AppVersionInfo {
     required this.apkAvailable,
   });
 
-  factory AppVersionInfo.fromJson(Map<String, dynamic> json) {
+  /// Lee la respuesta de `GET /repos/{repo}/releases/latest`. El tag es `build-N` (N = versionCode).
+  factory AppVersionInfo.fromGithubRelease(Map<String, dynamic> json) {
+    final tag = json['tag_name'] as String? ?? '';
+    final assets = (json['assets'] as List?) ?? const [];
+    final apk = assets.cast<Map<String, dynamic>>().where(
+          (a) => (a['name'] as String? ?? '').endsWith('.apk'),
+        );
+    final downloadUrl = apk.isEmpty ? '' : apk.first['browser_download_url'] as String? ?? '';
+    final name = (json['name'] as String? ?? '').replaceFirst(RegExp(r'^v'), '');
+
     return AppVersionInfo(
-      versionCode: (json['version_code'] as num?)?.toInt() ?? 1,
-      versionName: json['version_name'] as String? ?? '1.0.0',
-      minSupportedVersionCode: (json['min_supported_version_code'] as num?)?.toInt() ?? 1,
-      forceUpdate: json['force_update'] as bool? ?? false,
-      releaseNotes: json['release_notes'] as String? ?? '',
-      downloadUrl: json['download_url'] as String? ?? '',
-      apkAvailable: json['apk_available'] as bool? ?? false,
+      // Sin tag válido o sin APK => versionCode 0: nunca se ofrece como actualización
+      versionCode: downloadUrl.isEmpty ? 0 : int.tryParse(tag.replaceFirst('build-', '')) ?? 0,
+      versionName: name.isEmpty ? tag : name,
+      minSupportedVersionCode: 1,
+      forceUpdate: false,
+      releaseNotes: json['body'] as String? ?? '',
+      downloadUrl: downloadUrl,
+      apkAvailable: downloadUrl.isNotEmpty,
     );
   }
 }

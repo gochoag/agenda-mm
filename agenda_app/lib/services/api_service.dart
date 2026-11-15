@@ -107,7 +107,7 @@ class ApiService {
       } else if (response.statusCode == 500) {
         return {
           'success': false,
-          'error': 'Error 500 en el servidor. Falta aplicar las migraciones de base de datos en PythonAnywhere.'
+          'error': 'Error 500 en el servidor. Inténtalo de nuevo en unos minutos.'
         };
       } else {
         return {
@@ -482,20 +482,22 @@ class ApiService {
     }
   }
 
+  // Las versiones las publica el workflow .github/workflows/apk.yml como GitHub Releases (tag build-<versionCode>)
+  static const String _latestReleaseUrl =
+      'https://api.github.com/repos/gochoag/agenda-mm/releases/latest';
+
   Future<AppVersionInfo?> checkAppVersion() async {
     try {
-      final baseUrl = await getBaseUrl();
-      final url = Uri.parse('$baseUrl/api/app/version');
       final response = await http
-          .get(url, headers: {'Accept': 'application/json'})
+          .get(Uri.parse(_latestReleaseUrl), headers: {'Accept': 'application/vnd.github+json'})
           .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final body = jsonDecode(utf8.decode(response.bodyBytes));
-        return AppVersionInfo.fromJson(body);
+        return AppVersionInfo.fromGithubRelease(body);
       }
     } catch (_) {
-      // Si el backend no está disponible o no hay red, retorno silencioso
+      // Sin red, límite de la API de GitHub o release sin APK: retorno silencioso
     }
     return null;
   }

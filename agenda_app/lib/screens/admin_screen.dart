@@ -85,8 +85,8 @@ class _AdminScreenState extends State<AdminScreen> {
             ElevatedButton(
               onPressed: () async {
                 final newPass = passController.text.trim();
-                if (newPass.length < 4) {
-                  AppSnackBar.show(context, 'Mínimo 4 caracteres requeridos', isError: true);
+                if (newPass.length < 8) {
+                  AppSnackBar.show(context, 'Mínimo 8 caracteres requeridos', isError: true);
                   return;
                 }
 
@@ -149,7 +149,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 controller: passController,
                 obscureText: obscure,
                 decoration: InputDecoration(
-                  labelText: 'Contraseña (mínimo 4 caracteres)',
+                  labelText: 'Contraseña (mínimo 8 caracteres)',
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
@@ -169,10 +169,10 @@ class _AdminScreenState extends State<AdminScreen> {
                 final uname = userController.text.trim();
                 final pass = passController.text.trim();
 
-                if (uname.isEmpty || pass.length < 4) {
+                if (uname.isEmpty || pass.length < 8) {
                   AppSnackBar.show(
                     context,
-                    'Completa el usuario y una clave de al menos 4 caracteres',
+                    'Completa el usuario y una clave de al menos 8 caracteres',
                     isError: true,
                   );
                   return;

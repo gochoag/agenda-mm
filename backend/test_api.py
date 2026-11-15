@@ -8,6 +8,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Usar base de datos temporal de prueba
 os.environ['DATABASE_PATH'] = os.path.abspath(os.path.join(os.path.dirname(__file__), 'test_agenda.db'))
+# Con TEST_DATABASE_URL las pruebas corren contra Postgres (CI); sin ella, contra SQLite temporal
+os.environ.pop('DATABASE_URL', None)
+if os.environ.get('TEST_DATABASE_URL'):
+    os.environ['DATABASE_URL'] = os.environ['TEST_DATABASE_URL']
+os.environ['JWT_SECRET_KEY'] = 'clave-solo-para-pruebas-con-mas-de-32-caracteres'
+os.environ['RATELIMIT_ENABLED'] = '0'
 
 from backend.app import create_app
 from backend.models import db, User, CalendarEvent, StickyNote
@@ -267,14 +273,35 @@ class AgendaApiTestCase(unittest.TestCase):
         self.assertFalse(any(n['content'] == 'Nota específica de Septiembre' for n in res_ago.get_json()['notes']))
         print("[OK] Aislamiento y seccionado por mes en notas validado")
 
-        # Endpoint de versión para actualizaciones OTA
-        res = self.client.get('/api/app/version')
-        self.assertEqual(res.status_code, 200)
-        self.assertIn('version_code', res.get_json())
-        self.assertIn('download_url', res.get_json())
-        print("[OK] Endpoint de verificación de versión OTA validado")
-
         print("--- Todas las pruebas del Backend finalizaron con ÉXITO ---\n")
+
+
+class SecurityTestCase(unittest.TestCase):
+    def test_login_rate_limit_and_body_size(self):
+        os.environ['RATELIMIT_ENABLED'] = '1'
+        try:
+            app = create_app()
+        finally:
+            os.environ['RATELIMIT_ENABLED'] = '0'
+        client = app.test_client()
+        with app.app_context():
+            db.create_all()
+        try:
+            codes = [client.post('/api/auth/login', json={'username': 'x', 'password': 'y'},
+                                 headers={'CF-Connecting-IP': '203.0.113.9'}).status_code for _ in range(6)]
+            self.assertEqual(codes[:5], [401] * 5)
+            self.assertEqual(codes[5], 429)
+            self.assertIn('error', client.post('/api/auth/login', json={},
+                                               headers={'CF-Connecting-IP': '203.0.113.9'}).get_json())
+            # Otra IP no queda bloqueada por la anterior
+            self.assertEqual(client.post('/api/auth/login', json={'username': 'x', 'password': 'y'},
+                                         headers={'CF-Connecting-IP': '203.0.113.10'}).status_code, 401)
+            res = client.post('/api/auth/login', data='x' * (3 * 1024 * 1024), content_type='application/json')
+            self.assertEqual(res.status_code, 413)
+            self.assertEqual(client.get('/api/health').status_code, 200)
+        finally:
+            with app.app_context():
+                db.drop_all()
 
 
 if __name__ == '__main__':

@@ -1,0 +1,81 @@
+# Compila el APK firmado y lo publica como GitHub Release en cada cambio de la app en main.
+# La app consulta releases/latest al abrir: si el número del tag build-N es mayor que su versionCode, ofrece actualizar.
+# versionCode = último build-N + 1; versionName = mayor.menor de pubspec.yaml + "." + versionCode (ej. 1.0.5).
+name: APK
+on:
+  push:
+    branches: [main]
+    paths: ["agenda_app/**", ".github/workflows/apk.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk
+  cancel-in-progress: false
+
+env:
+  API_BASE_URL: https://agendamm.ochylabs.top
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agenda_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: stable
+          cache: true
+
+      - name: Número de versión
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ultimo=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName \
+            --jq '[.[].tagName | select(startswith("build-")) | ltrimstr("build-") | tonumber] | max // 4')
+          codigo=$((ultimo + 1))
+          base=$(sed -nE 's/^version: *([0-9]+\.[0-9]+)\..*/\1/p' pubspec.yaml)
+          echo "codigo=$codigo" >> "$GITHUB_OUTPUT"
+          echo "nombre=$base.$codigo" >> "$GITHUB_OUTPUT"
+
+      - name: Firma y URL de la API
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # Sin la clave de release no se publica: un APK firmado con otra clave no actualiza la app instalada
+          test -n "$KEYSTORE_BASE64" || { echo "::error::Falta el secreto ANDROID_KEYSTORE_BASE64"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+          printf 'storeFile=release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+          echo "API_BASE_URL=$API_BASE_URL" > .env
+
+      - run: flutter pub get
+      - name: Compilar APK
+        run: >-
+          flutter build apk --release
+          --build-name=${{ steps.version.outputs.nombre }}
+          --build-number=${{ steps.version.outputs.codigo }}
+          --target-platform android-arm,android-arm64
+
+      - name: Publicar release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTAS: ${{ github.event.head_commit.message }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk agenda-mm.apk
+          gh release create "build-${{ steps.version.outputs.codigo }}" agenda-mm.apk \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "v${{ steps.version.outputs.nombre }}" --notes "${NOTAS:-Nueva versión}"

@@ -53,22 +53,16 @@ El Administrador tiene la capacidad de crear y gestionar **múltiples CoAdmins**
 
 ---
 
-## 3. Ejecución en PythonAnywhere (Consola Bash)
+## 3. Ejecución en el VPS (Docker)
 
-Cuando estés en el servidor de PythonAnywhere:
+Dentro del contenedor activo (el color azul/verde lo muestra `vps-status`):
 
 ```bash
-# 1. Activar el entorno virtual
-workon agenda-env
+# Crear tu Administrador
+docker exec -it agendamm-<color>-app-1 flask --app backend.app create-admin
 
-# 2. Ir a la carpeta del proyecto
-cd /home/tu_usuario/agenda-mm
-
-# 3. Crear tu Administrador
-flask --app backend.app create-admin
-
-# 4. Verificar
-flask --app backend.app list-users
+# Verificar
+docker exec -it agendamm-<color>-app-1 flask --app backend.app list-users
 ```
 
 ---

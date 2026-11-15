@@ -3,7 +3,7 @@
 Sistema integral de gestión de agenda, eventos de calendario y notas adhesivas interactivas con sincronización multiusuario y roles jerárquicos (Administrador, CoAdmin y Usuarios).
 
 El proyecto está compuesto por:
-1. **Backend:** API REST construida en **Flask**, autenticación **JWT**, base de datos relacional **SQLite** y migraciones de base de datos controladas por **Alembic / Flask-Migrate**.
+1. **Backend:** API REST construida en **Flask**, autenticación **JWT**, base de datos **PostgreSQL** en producción (**SQLite** en desarrollo local) y migraciones de base de datos controladas por **Alembic / Flask-Migrate**.
 2. **Frontend Móvil:** Aplicación nativa multiplataforma construida en **Flutter**, optimizada para alto rendimiento AOT en Android con notificaciones locales programadas y soporte offline.
 
 ---
@@ -18,8 +18,7 @@ agenda-mm/
 │   ├── app.py                # Fábrica de la aplicación Flask y comandos CLI
 │   ├── models.py             # Modelos SQLAlchemy (User, CalendarEvent, StickyNote)
 │   ├── requirements.txt      # Dependencias Python
-│   ├── wsgi.py               # Entrada WSGI para producción
-│   └── README_PYTHONANYWHERE.md # Guía paso a paso de despliegue en la nube
+│   └── Dockerfile            # Imagen de producción (gunicorn)
 ├── agenda_app/               # Aplicación móvil en Flutter
 │   ├── lib/
 │   │   ├── models/           # Modelos Dart (User, CalendarEvent, StickyNote)
@@ -28,6 +27,8 @@ agenda-mm/
 │   │   ├── theme/            # Sistema de diseño y temas visuales
 │   │   └── widgets/          # Componentes reusables y modales
 │   └── pubspec.yaml          # Dependencias y configuración de assets
+├── deploy/                   # Despliegue en el VPS (deploy-dev, deploy-produccion, migración de datos)
+├── .github/workflows/        # deploy.yml (API al VPS) y apk.yml (APK como GitHub Release)
 ├── package.json              # Scripts orquestadores (pnpm) para desarrollo y CLI
 └── .gitignore                # Reglas de exclusión para control de versiones
 ```
@@ -53,6 +54,8 @@ python -m venv .venv
 .venv\Scripts\activate
 # Instalar paquetes
 pip install -r backend/requirements.txt
+
+# Copiar backend/.env.example a backend/.env y poner un JWT_SECRET_KEY (obligatorio)
 
 # Aplicar las migraciones de base de datos
 flask --app backend.app db upgrade --directory backend/migrations
@@ -99,7 +102,7 @@ Las modificaciones en las tablas y esquemas se gestionan mediante **Flask-Migrat
 
 ---
 
-## ☁️ Despliegue en Producción (PythonAnywhere)
+## ☁️ Despliegue en Producción
 
-Para desplegar el backend de forma 100% gratuita en PythonAnywhere:
-- Consulta la guía detallada paso a paso en [backend/README_PYTHONANYWHERE.md](backend/README_PYTHONANYWHERE.md).
+- **API**: VPS del equipo en `https://agendamm.ochylabs.top`. Cada merge a `main` la despliega con `.github/workflows/deploy.yml`. Detalles en [deploy/deploy-produccion/README.md](deploy/deploy-produccion/README.md).
+- **APK**: cada cambio en `agenda_app/` que llega a `main` compila un APK firmado y lo publica como **GitHub Release** (`.github/workflows/apk.yml`). La app detecta la versión nueva al abrir y se actualiza sola.
